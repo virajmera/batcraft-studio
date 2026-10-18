@@ -196,3 +196,173 @@ export default function App() {
                 className="w-full accent-amber-500 cursor-pointer bg-slate-800 h-2 rounded-lg"
               />
             </div>
+
+            {/* Sweet Spot Position */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-300 font-medium">Sweet Spot Height (from Toe)</span>
+                <span className="text-amber-400 font-bold">{sweetSpotPos} cm</span>
+              </div>
+              <input 
+                type="range" 
+                min="14" 
+                max="28" 
+                step="0.5"
+                value={sweetSpotPos}
+                onChange={(e) => setSweetSpotPos(Number(e.target.value))}
+                className="w-full accent-amber-500 cursor-pointer bg-slate-800 h-2 rounded-lg"
+              />
+              {autoLinkPhysics && (
+                <p className="text-[11px] text-slate-500 italic">
+                  * Raising sweet spot shifts mass higher, automatically raising MOI and Pickup Feel.
+                </p>
+              )}
+            </div>
+
+            {/* Spine & Edges */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-800">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-300 font-medium">Spine Height</span>
+                  <span className="text-amber-400 font-bold">{spineHeight} mm</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="50" 
+                  max="80" 
+                  value={spineHeight}
+                  onChange={(e) => setSpineHeight(Number(e.target.value))}
+                  className="w-full accent-amber-500 cursor-pointer bg-slate-800 h-2 rounded-lg"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-300 font-medium">Edge Thickness</span>
+                  <span className="text-amber-400 font-bold">{edgeThickness} mm</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="30" 
+                  max="45" 
+                  value={edgeThickness}
+                  onChange={(e) => setEdgeThickness(Number(e.target.value))}
+                  className="w-full accent-amber-500 cursor-pointer bg-slate-800 h-2 rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* Derived Dynamics Section (MOI & Pickup) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-800/80 bg-slate-950/40 p-4 rounded-xl border border-slate-800">
+              {/* Pickup Weight */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-300 font-medium flex items-center gap-1.5">
+                    Pickup Feel
+                    {autoLinkPhysics && <span className="text-[10px] text-amber-400 font-mono">(Auto)</span>}
+                  </span>
+                  <span className="text-amber-400 font-bold">{pickupWeight} g</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="1000" 
+                  max="1250" 
+                  step="5"
+                  disabled={autoLinkPhysics}
+                  value={pickupWeight}
+                  onChange={(e) => setPickupWeight(Number(e.target.value))}
+                  className={`w-full h-2 rounded-lg ${autoLinkPhysics ? 'accent-amber-500/50 opacity-60 cursor-not-allowed bg-slate-800' : 'accent-amber-500 cursor-pointer bg-slate-800'}`}
+                />
+              </div>
+
+              {/* MOI */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-300 font-medium flex items-center gap-1.5">
+                    Moment of Inertia (MOI)
+                    {autoLinkPhysics && <span className="text-[10px] text-amber-400 font-mono">(Auto)</span>}
+                  </span>
+                  <span className="text-amber-400 font-bold">{moi} kg·cm²</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="2100" 
+                  max="2800" 
+                  step="10"
+                  disabled={autoLinkPhysics}
+                  value={moi}
+                  onChange={(e) => setMoi(Number(e.target.value))}
+                  className={`w-full h-2 rounded-lg ${autoLinkPhysics ? 'accent-amber-500/50 opacity-60 cursor-not-allowed bg-slate-800' : 'accent-amber-500 cursor-pointer bg-slate-800'}`}
+                />
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Analytics & Performance Column (1 span) */}
+        <div className="space-y-6">
+          
+          {/* OPI Score Card */}
+          <div className="bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-900 border border-amber-500/30 rounded-2xl p-6 text-center relative overflow-hidden shadow-xl">
+            <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div className="inline-flex p-3 bg-amber-500/20 text-amber-400 rounded-2xl mb-3">
+              <Award className="w-8 h-8" />
+            </div>
+            
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Optimal Profile Index (OPI)</h3>
+            
+            <div className="my-4 flex items-baseline justify-center gap-1">
+              <span className="text-6xl font-black text-white tracking-tight">{opiScore}</span>
+              <span className="text-xl font-bold text-amber-400">/ 100</span>
+            </div>
+
+            <p className="text-xs text-slate-400 px-4">
+              {pitchCondition === 'hard_bouncy' 
+                ? "Calibrated for Hard & Bouncy conditions (Target sweet spot ~23cm)." 
+                : "Calibrated for Low & Slow conditions (Target sweet spot ~18cm)."}
+            </p>
+          </div>
+
+          {/* Dynamic Physics Insights Breakdown */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 space-y-4 backdrop-blur-md">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <BarChart2 className="w-4 h-4 text-amber-400" />
+              Interdependent Physics Analysis
+            </h4>
+
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between items-center py-2 border-b border-slate-800/60">
+                <span className="text-slate-400">Mass Distribution</span>
+                <span className="font-semibold text-slate-200">
+                  {sweetSpotPos > 22 ? 'Top-Heavy Profile' : sweetSpotPos < 19 ? 'Low-Weighted Toe' : 'Mid Balanced'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-slate-800/60">
+                <span className="text-slate-400">Pickup Index Ratio</span>
+                <span className="font-semibold text-slate-200">
+                  {(totalWeight - pickupWeight) > 60 ? 'Light & Feathered' : 'Substantial Inertia'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-slate-800/60">
+                <span className="text-slate-400">Inertia Class (MOI)</span>
+                <span className="font-semibold text-amber-400">
+                  {moi > 2550 ? 'High Power / Slow Turn' : moi < 2300 ? 'Rapid Hand Speed' : 'Balanced Swing'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-slate-400">Physics Coupling</span>
+                <span className="font-semibold text-emerald-400">
+                  {autoLinkPhysics ? 'Real-World Linked' : 'Manual Overrides'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  );
+}
