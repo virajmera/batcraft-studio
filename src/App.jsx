@@ -32,16 +32,31 @@ export default function App() {
 
   // Real-world Physics Coupling Effect
   // Higher sweet spot & thicker spine/edges move center of mass upward, increasing MOI & Pickup Weight
+ // Real-world Physics Coupling Effect (Dynamic MOI & Pickup)
   useEffect(() => {
     if (autoLinkPhysics) {
-      // Base MOI calculation based on mass distribution & sweet spot leverage
+      // Dynamic leverage multiplier:
+      // Moving sweet spot higher shifts mass outward relative to the pivot (hands), 
+      // heavily increasing rotational inertia (MOI).
       const computedMoi = Math.round(
-        1800 + 
-        (totalWeight * 0.35) + 
-        (sweetSpotPos * 18) + 
-        (spineHeight * 3.5) + 
-        (edgeThickness * 2.5)
+        1600 + 
+        (totalWeight * 0.42) + 
+        ((sweetSpotPos - 14) * 35) +  // Increased multiplier from 18 to 35 for higher sensitivity
+        ((spineHeight - 50) * 8.5) +  // Increased spine impact
+        ((edgeThickness - 30) * 6.0)  // Increased edge thickness impact
       );
+
+      // Pickup feel reacts heavily to sweet spot height and mass concentration
+      const computedPickup = Math.round(
+        totalWeight - 90 + 
+        ((sweetSpotPos - 18) * 12) + 
+        ((spineHeight - 60) * 3.5)
+      );
+
+      setMoi(Math.min(Math.max(computedMoi, 2100), 2850));
+      setPickupWeight(Math.min(Math.max(computedPickup, 1000), 1280));
+    }
+  }, [totalWeight, sweetSpotPos, spineHeight, edgeThickness, autoLinkPhysics]);
 
       // Pickup weight increases if sweet spot is higher (higher center of gravity)
       const computedPickup = Math.round(
