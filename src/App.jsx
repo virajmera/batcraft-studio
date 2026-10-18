@@ -16,7 +16,6 @@ export default function App() {
 
   // Calculated Metrics
   const calculateOPI = () => {
-    // Optimal Profile Index synthetic formula for simulation
     const weightFactor = (1200 - totalWeight) / 100;
     const moiBalance = (moi - 2200) / 100;
     const sweetSpotFactor = pitchCondition === 'hard_bouncy' ? (sweetSpotPos - 18) * 1.5 : (25 - sweetSpotPos) * 1.5;
@@ -123,7 +122,6 @@ export default function App() {
             </h2>
 
             <div className="space-y-4">
-              {/* Total Weight */}
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-slate-400">Dead / Static Weight</span>
@@ -140,7 +138,6 @@ export default function App() {
                 />
               </div>
 
-              {/* MOI */}
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-slate-400">Moment of Inertia (MOI @ Handle)</span>
@@ -157,7 +154,6 @@ export default function App() {
                 />
               </div>
 
-              {/* Sweet Spot Position */}
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-slate-400">Sweet Spot Height (from Toe)</span>
@@ -174,7 +170,6 @@ export default function App() {
                 />
               </div>
 
-              {/* Edge & Spine */}
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div>
                   <div className="flex justify-between text-xs mb-1">
@@ -241,15 +236,10 @@ export default function App() {
               <Info className="w-4 h-4 text-emerald-400" /> Mass Distribution Profile Schematics
             </h3>
 
-            {/* Simple Graphic Mockup */}
             <div className="relative h-44 bg-slate-950 rounded-lg border border-slate-800/80 p-4 flex items-center justify-center">
-              {/* Bat Silhouette Representation */}
               <div className="relative w-full max-w-md h-12 bg-slate-800 rounded-r-2xl border border-slate-700 flex items-center">
-                {/* Handle */}
                 <div className="w-1/4 h-4 bg-amber-700/60 rounded-l border-r border-amber-600/40"></div>
-                {/* Blade */}
                 <div className="w-3/4 h-full relative flex items-center justify-start px-4">
-                  {/* Sweet spot highlight */}
                   <div 
                     className="absolute h-full bg-emerald-500/20 border-x-2 border-emerald-400/80 transition-all duration-300"
                     style={{
@@ -265,7 +255,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Dynamic Diagnostics Grid */}
             <div className="grid grid-cols-3 gap-4 mt-6">
               <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
                 <span className="block text-[11px] text-slate-400">Pickup Rating</span>
