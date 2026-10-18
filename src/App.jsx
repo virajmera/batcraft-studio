@@ -15,11 +15,24 @@ export default function App() {
   const [edgeThickness, setEdgeThickness] = useState(38); // mm
 
   // Calculated Metrics
+  const calculateOPI = () => // Calculated Metrics: Dynamic Pitch-Dependent Sweet Spot Physics
   const calculateOPI = () => {
-    const weightFactor = (1200 - totalWeight) / 100;
-    const moiBalance = (moi - 2200) / 100;
-    const sweetSpotFactor = pitchCondition === 'hard_bouncy' ? (sweetSpotPos - 18) * 1.5 : (25 - sweetSpotPos) * 1.5;
-    return Math.min(Math.max((75 + weightFactor + sweetSpotFactor - moiBalance).toFixed(1), 40), 99);
+    const weightFactor = Math.max(0, 10 - Math.abs(totalWeight - 1170) / 15);
+    
+    // Dynamic ideal sweet spot based on pitch conditions:
+    // Hard & Bouncy -> Higher sweet spot (~23cm)
+    // Low & Slow -> Lower sweet spot (~18cm)
+    const idealSweetSpot = pitchCondition === 'hard_bouncy' ? 23 : 18;
+    const sweetSpotDeviation = Math.abs(sweetSpotPos - idealSweetSpot);
+    
+    // Bell-curve scoring: score drops quadratically as you move away from the pitch-optimized height
+    const sweetSpotFactor = Math.max(0, 18 - (sweetSpotDeviation * sweetSpotDeviation * 1.5));
+
+    // MOI penalty for extreme inertia mismatches
+    const moiPenalty = Math.abs(moi - 2350) / 45;
+
+    const rawScore = 68 + weightFactor + sweetSpotFactor - moiPenalty;
+    return Math.min(Math.max(rawScore.toFixed(1), 40), 98);
   };
 
   const opiScore = calculateOPI();
