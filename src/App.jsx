@@ -1,18 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Activity, 
-  Sliders, 
-  RotateCcw, 
-  Shield, 
-  Zap, 
-  Scale, 
-  Compass, 
-  BarChart2, 
+import {
+  Activity,
+  Sliders,
+  RotateCcw,
+  Shield,
+  Zap,
+  Scale,
+  Compass,
+  BarChart2,
   Layers,
   Award,
   Link2,
   Unlink
 } from 'lucide-react';
+
+// Pitch presets set all six pitch metrics at once. Editing any metric switches to the custom pitch.
+const PITCH_PRESETS = {
+  hard_bouncy: { pace: 6, bounce: 8, grassCover: 30, moisture: 2, hardness: 8, turn: 3 },
+  low_slow: { pace: 2, bounce: 3, grassCover: 80, moisture: 8, hardness: 4, turn: 6 },
+};
+
+const PITCH_LABELS = { hard_bouncy: 'Hard & Bouncy', low_slow: 'Low & Slow', custom: 'Custom' };
+
+const PITCH_CONTROLS = [
+  { key: 'pace', label: 'Pace', min: 1, max: 10, step: 1, low: 'Slow', high: 'Fast' },
+  { key: 'bounce', label: 'Bounce', min: 1, max: 10, step: 1, low: 'Low', high: 'High' },
+  { key: 'grassCover', label: 'Grass Cover', min: 0, max: 100, step: 5, unit: '%' },
+  { key: 'moisture', label: 'Moisture', min: 1, max: 10, step: 1, low: 'Dry', high: 'Damp' },
+  { key: 'hardness', label: 'Hardness', min: 1, max: 10, step: 1, low: 'Soft', high: 'Firm' },
+  { key: 'turn', label: 'Turn', min: 1, max: 10, step: 1, low: 'Flat', high: 'Spinning' },
+];
+
+// Ideal sweet spot height (cm) for a pitch.
+// Bounce and hardness raise it; pace, grass cover, moisture and turn lower it.
+const getIdealSweetSpot = (pitch) =>
+  20 +
+  0.4 * (pitch.bounce - 5) +
+  0.3 * (pitch.hardness - 5) -
+  0.2 * (pitch.pace - 5) -
+  0.03 * (pitch.grassCover - 50) -
+  0.1 * (pitch.moisture - 5) -
+  0.1 * (pitch.turn - 5);
 
 export default function App() {
   // State for Primary Bat Parameters
@@ -20,7 +48,8 @@ export default function App() {
   const [sweetSpotPos, setSweetSpotPos] = useState(21); // cm from toe
   const [spineHeight, setSpineHeight] = useState(64); // mm
   const [edgeThickness, setEdgeThickness] = useState(38); // mm
-  const [pitchCondition, setPitchCondition] = useState('hard_bouncy'); // 'hard_bouncy' or 'low_slow'
+  const [pitchCondition, setPitchCondition] = useState('hard_bouncy'); // 'hard_bouncy', 'low_slow' or 'custom'
+  const [pitch, setPitch] = useState(PITCH_PRESETS.hard_bouncy); // the six pitch metrics
   const [cor, setCor] = useState(0.55); // Coefficient of Restitution
 
   // Interconnected Physics Linking Toggle
@@ -36,11 +65,11 @@ export default function App() {
   useEffect(() => {
     if (autoLinkPhysics) {
       // Dynamic leverage multiplier:
-      // Moving sweet spot higher shifts mass outward relative to the pivot (hands), 
+      // Moving sweet spot higher shifts mass outward relative to the pivot (hands),
       // heavily increasing rotational inertia (MOI).
       const computedMoi = Math.round(
-        1600 + 
-        (totalWeight * 0.42) + 
+        1600 +
+        (totalWeight * 0.42) +
         ((sweetSpotPos - 14) * 35) +  // Increased multiplier from 18 to 35 for higher sensitivity
         ((spineHeight - 50) * 8.5) +  // Increased spine impact
         ((edgeThickness - 30) * 6.0)  // Increased edge thickness impact
@@ -48,8 +77,8 @@ export default function App() {
 
       // Pickup feel reacts heavily to sweet spot height and mass concentration
       const computedPickup = Math.round(
-        totalWeight - 90 + 
-        ((sweetSpotPos - 18) * 12) + 
+        totalWeight - 90 +
+        ((sweetSpotPos - 18) * 12) +
         ((spineHeight - 60) * 3.5)
       );
 
@@ -58,17 +87,25 @@ export default function App() {
     }
   }, [totalWeight, sweetSpotPos, spineHeight, edgeThickness, autoLinkPhysics]);
 
+  // Ideal sweet spot for the selected pitch, from its metrics
+  const idealSweetSpot = getIdealSweetSpot(pitch);
+
+  const applyPreset = (name) => {
+    setPitchCondition(name);
+    setPitch(PITCH_PRESETS[name]);
+  };
+
+  const updatePitch = (key, value) => {
+    setPitchCondition('custom');
+    setPitch((prev) => ({ ...prev, [key]: value }));
+  };
+
   // Calculated Metrics: Dynamic Pitch-Dependent Sweet Spot Physics + Interdependent MOI Impact
   const calculateOPI = () => {
     const weightFactor = Math.max(0, 10 - Math.abs(totalWeight - 1170) / 15);
-    
-    // Dynamic ideal sweet spot based on pitch conditions:
-    // Hard & Bouncy -> Higher sweet spot (~23cm)
-    // Low & Slow -> Lower sweet spot (~18cm)
-    const idealSweetSpot = pitchCondition === 'hard_bouncy' ? 23 : 18;
-    const sweetSpotDeviation = Math.abs(sweetSpotPos - idealSweetSpot);
-    
+
     // Bell-curve scoring: score drops quadratically as you move away from the pitch-optimized height
+    const sweetSpotDeviation = Math.abs(sweetSpotPos - idealSweetSpot);
     const sweetSpotFactor = Math.max(0, 18 - (sweetSpotDeviation * sweetSpotDeviation * 1.5));
 
     // MOI coupling penalty: higher sweet spot raises MOI, which reduces swing speed unless balanced
@@ -84,6 +121,7 @@ export default function App() {
 
   const handleReset = () => {
     setPitchCondition('hard_bouncy');
+    setPitch(PITCH_PRESETS.hard_bouncy);
     setCor(0.55);
     setTotalWeight(1180);
     setPickupWeight(1120);
@@ -113,16 +151,16 @@ export default function App() {
           <button
             onClick={() => setAutoLinkPhysics(!autoLinkPhysics)}
             className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-medium transition-all cursor-pointer ${
-              autoLinkPhysics 
-                ? 'bg-amber-500/10 border-amber-500/40 text-amber-300' 
+              autoLinkPhysics
+                ? 'bg-amber-500/10 border-amber-500/40 text-amber-300'
                 : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
             }`}
           >
             {autoLinkPhysics ? <Link2 className="w-4 h-4 text-amber-400" /> : <Unlink className="w-4 h-4 text-slate-500" />}
             {autoLinkPhysics ? 'Physics Linked: ON' : 'Physics Linked: OFF'}
           </button>
-          
-          <button 
+
+          <button
             onClick={handleReset}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
           >
@@ -134,19 +172,19 @@ export default function App() {
 
       {/* Main Dashboard Grid */}
       <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* Controls Column (2 spans) */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           {/* Pitch & Environmental Setup */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-md">
             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <Compass className="w-5 h-5 text-amber-400" />
               Pitch Condition & Environment
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button
-                onClick={() => setPitchCondition('hard_bouncy')}
+                onClick={() => applyPreset('hard_bouncy')}
                 className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
                   pitchCondition === 'hard_bouncy'
                     ? 'bg-amber-500/10 border-amber-500/50 text-amber-300 shadow-lg shadow-amber-500/5'
@@ -158,7 +196,7 @@ export default function App() {
               </button>
 
               <button
-                onClick={() => setPitchCondition('low_slow')}
+                onClick={() => applyPreset('low_slow')}
                 className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
                   pitchCondition === 'low_slow'
                     ? 'bg-amber-500/10 border-amber-500/50 text-amber-300 shadow-lg shadow-amber-500/5'
@@ -168,6 +206,45 @@ export default function App() {
                 <div className="font-bold text-base mb-1">Low & Slow Pitch</div>
                 <p className="text-xs text-slate-400">Optimizes for skidding deliveries with a lower sweet spot (~18cm).</p>
               </button>
+
+              <button
+                onClick={() => setPitchCondition('custom')}
+                className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                  pitchCondition === 'custom'
+                    ? 'bg-amber-500/10 border-amber-500/50 text-amber-300 shadow-lg shadow-amber-500/5'
+                    : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <div className="font-bold text-base mb-1">Custom Pitch</div>
+                <p className="text-xs text-slate-400">Build your own pitch from the metrics below.</p>
+              </button>
+            </div>
+
+            {/* Pitch Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 mt-6 border-t border-slate-800">
+              {PITCH_CONTROLS.map((control) => (
+                <div key={control.key} className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-300 font-medium">{control.label}</span>
+                    <span className="text-amber-400 font-bold">{pitch[control.key]}{control.unit ?? ''}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={control.min}
+                    max={control.max}
+                    step={control.step}
+                    value={pitch[control.key]}
+                    onChange={(e) => updatePitch(control.key, Number(e.target.value))}
+                    className="w-full accent-amber-500 cursor-pointer bg-slate-800 h-2 rounded-lg"
+                  />
+                  {control.low && (
+                    <div className="flex justify-between text-[11px] text-slate-500">
+                      <span>{control.low}</span>
+                      <span>{control.high}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -191,10 +268,10 @@ export default function App() {
                 <span className="text-slate-300 font-medium">Total Mass (Weight)</span>
                 <span className="text-amber-400 font-bold">{totalWeight} g</span>
               </div>
-              <input 
-                type="range" 
-                min="1050" 
-                max="1300" 
+              <input
+                type="range"
+                min="1050"
+                max="1300"
                 step="5"
                 value={totalWeight}
                 onChange={(e) => setTotalWeight(Number(e.target.value))}
@@ -208,10 +285,10 @@ export default function App() {
                 <span className="text-slate-300 font-medium">Sweet Spot Height (from Toe)</span>
                 <span className="text-amber-400 font-bold">{sweetSpotPos} cm</span>
               </div>
-              <input 
-                type="range" 
-                min="14" 
-                max="28" 
+              <input
+                type="range"
+                min="14"
+                max="28"
                 step="0.5"
                 value={sweetSpotPos}
                 onChange={(e) => setSweetSpotPos(Number(e.target.value))}
@@ -231,10 +308,10 @@ export default function App() {
                   <span className="text-slate-300 font-medium">Spine Height</span>
                   <span className="text-amber-400 font-bold">{spineHeight} mm</span>
                 </div>
-                <input 
-                  type="range" 
-                  min="50" 
-                  max="80" 
+                <input
+                  type="range"
+                  min="50"
+                  max="80"
                   value={spineHeight}
                   onChange={(e) => setSpineHeight(Number(e.target.value))}
                   className="w-full accent-amber-500 cursor-pointer bg-slate-800 h-2 rounded-lg"
@@ -246,10 +323,10 @@ export default function App() {
                   <span className="text-slate-300 font-medium">Edge Thickness</span>
                   <span className="text-amber-400 font-bold">{edgeThickness} mm</span>
                 </div>
-                <input 
-                  type="range" 
-                  min="30" 
-                  max="45" 
+                <input
+                  type="range"
+                  min="30"
+                  max="45"
                   value={edgeThickness}
                   onChange={(e) => setEdgeThickness(Number(e.target.value))}
                   className="w-full accent-amber-500 cursor-pointer bg-slate-800 h-2 rounded-lg"
@@ -268,10 +345,10 @@ export default function App() {
                   </span>
                   <span className="text-amber-400 font-bold">{pickupWeight} g</span>
                 </div>
-                <input 
-                  type="range" 
-                  min="1000" 
-                  max="1250" 
+                <input
+                  type="range"
+                  min="1000"
+                  max="1250"
                   step="5"
                   disabled={autoLinkPhysics}
                   value={pickupWeight}
@@ -289,10 +366,10 @@ export default function App() {
                   </span>
                   <span className="text-amber-400 font-bold">{moi} kg·cm²</span>
                 </div>
-                <input 
-                  type="range" 
-                  min="2100" 
-                  max="2800" 
+                <input
+                  type="range"
+                  min="2100"
+                  max="2800"
                   step="10"
                   disabled={autoLinkPhysics}
                   value={moi}
@@ -307,26 +384,24 @@ export default function App() {
 
         {/* Analytics & Performance Column (1 span) */}
         <div className="space-y-6">
-          
+
           {/* OPI Score Card */}
           <div className="bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-900 border border-amber-500/30 rounded-2xl p-6 text-center relative overflow-hidden shadow-xl">
             <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
-            
+
             <div className="inline-flex p-3 bg-amber-500/20 text-amber-400 rounded-2xl mb-3">
               <Award className="w-8 h-8" />
             </div>
-            
+
             <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Optimal Profile Index (OPI)</h3>
-            
+
             <div className="my-4 flex items-baseline justify-center gap-1">
               <span className="text-6xl font-black text-white tracking-tight">{opiScore}</span>
               <span className="text-xl font-bold text-amber-400">/ 100</span>
             </div>
 
             <p className="text-xs text-slate-400 px-4">
-              {pitchCondition === 'hard_bouncy' 
-                ? "Calibrated for Hard & Bouncy conditions (Target sweet spot ~23cm)." 
-                : "Calibrated for Low & Slow conditions (Target sweet spot ~18cm)."}
+              {`Calibrated for ${PITCH_LABELS[pitchCondition]} conditions (Target sweet spot ~${idealSweetSpot.toFixed(1)}cm).`}
             </p>
           </div>
 
