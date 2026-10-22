@@ -58,16 +58,6 @@ export default function App() {
     }
   }, [totalWeight, sweetSpotPos, spineHeight, edgeThickness, autoLinkPhysics]);
 
-      // Pickup weight increases if sweet spot is higher (higher center of gravity)
-      const computedPickup = Math.round(
-        totalWeight - 80 + ((sweetSpotPos - 18) * 6) + ((spineHeight - 60) * 1.5)
-      );
-
-      setMoi(computedMoi);
-      setPickupWeight(computedPickup);
-    }
-  }, [totalWeight, sweetSpotPos, spineHeight, edgeThickness, autoLinkPhysics]);
-
   // Calculated Metrics: Dynamic Pitch-Dependent Sweet Spot Physics + Interdependent MOI Impact
   const calculateOPI = () => {
     const weightFactor = Math.max(0, 10 - Math.abs(totalWeight - 1170) / 15);
