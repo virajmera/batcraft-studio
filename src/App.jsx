@@ -1,17 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  Activity,
   Sliders,
   RotateCcw,
   Shield,
-  Zap,
-  Scale,
   Compass,
   BarChart2,
-  Layers,
   Award,
-  Link2,
-  Unlink
 } from 'lucide-react';
 
 // Pitch presets set all six pitch metrics at once. Editing any metric switches to the custom pitch.
@@ -52,40 +46,36 @@ export default function App() {
   const [pitch, setPitch] = useState(PITCH_PRESETS.hard_bouncy); // the six pitch metrics
   const [cor, setCor] = useState(0.55); // Coefficient of Restitution
 
-  // Interconnected Physics Linking Toggle
-  const [autoLinkPhysics, setAutoLinkPhysics] = useState(true);
-
-  // Derived / Dependent State
-  const [pickupWeight, setPickupWeight] = useState(1120); // feel weight in grams
-  const [moi, setMoi] = useState(2400); // Moment of Inertia (kg.cm^2)
-
-  // Real-world Physics Coupling Effect
-  // Higher sweet spot & thicker spine/edges move center of mass upward, increasing MOI & Pickup Weight
- // Real-world Physics Coupling Effect (Dynamic MOI & Pickup)
-  useEffect(() => {
-    if (autoLinkPhysics) {
-      // Dynamic leverage multiplier:
-      // Moving sweet spot higher shifts mass outward relative to the pivot (hands),
-      // heavily increasing rotational inertia (MOI).
-      const computedMoi = Math.round(
+  // Real-world Physics Coupling Effect (always on)
+  // Higher sweet spot & thicker spine/edges move center of mass upward, increasing MOI & Pickup Weight.
+  // Dynamic leverage multiplier: moving the sweet spot higher shifts mass outward relative to the
+  // pivot (hands), heavily increasing rotational inertia (MOI).
+  const moi = Math.min(
+    Math.max(
+      Math.round(
         1600 +
         (totalWeight * 0.42) +
-        ((sweetSpotPos - 14) * 35) +  // Increased multiplier from 18 to 35 for higher sensitivity
-        ((spineHeight - 50) * 8.5) +  // Increased spine impact
-        ((edgeThickness - 30) * 6.0)  // Increased edge thickness impact
-      );
+        ((sweetSpotPos - 14) * 35) +
+        ((spineHeight - 50) * 8.5) +
+        ((edgeThickness - 30) * 6.0)
+      ),
+      2100
+    ),
+    2850
+  ); // Moment of Inertia (kg.cm^2)
 
-      // Pickup feel reacts heavily to sweet spot height and mass concentration
-      const computedPickup = Math.round(
+  // Pickup feel reacts heavily to sweet spot height and mass concentration
+  const pickupWeight = Math.min(
+    Math.max(
+      Math.round(
         totalWeight - 90 +
         ((sweetSpotPos - 18) * 12) +
         ((spineHeight - 60) * 3.5)
-      );
-
-      setMoi(Math.min(Math.max(computedMoi, 2100), 2850));
-      setPickupWeight(Math.min(Math.max(computedPickup, 1000), 1280));
-    }
-  }, [totalWeight, sweetSpotPos, spineHeight, edgeThickness, autoLinkPhysics]);
+      ),
+      1000
+    ),
+    1280
+  ); // feel weight in grams
 
   // Ideal sweet spot for the selected pitch, from its metrics
   const idealSweetSpot = getIdealSweetSpot(pitch);
@@ -124,12 +114,9 @@ export default function App() {
     setPitch(PITCH_PRESETS.hard_bouncy);
     setCor(0.55);
     setTotalWeight(1180);
-    setPickupWeight(1120);
-    setMoi(2400);
     setSweetSpotPos(21);
     setSpineHeight(64);
     setEdgeThickness(38);
-    setAutoLinkPhysics(true);
   };
 
   return (
@@ -148,18 +135,6 @@ export default function App() {
           </div>
         </div>
         <div className="mt-4 md:mt-0 flex items-center gap-4">
-          <button
-            onClick={() => setAutoLinkPhysics(!autoLinkPhysics)}
-            className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-medium transition-all cursor-pointer ${
-              autoLinkPhysics
-                ? 'bg-purple-500/10 border-purple-500/40 text-purple-300'
-                : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
-            }`}
-          >
-            {autoLinkPhysics ? <Link2 className="w-4 h-4 text-purple-400" /> : <Unlink className="w-4 h-4 text-zinc-500" />}
-            {autoLinkPhysics ? 'Physics Linked: ON' : 'Physics Linked: OFF'}
-          </button>
-
           <button
             onClick={handleReset}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
@@ -255,11 +230,9 @@ export default function App() {
                 <Sliders className="w-5 h-5 text-purple-400" />
                 Physical Specifications
               </h2>
-              {autoLinkPhysics && (
-                <span className="text-xs bg-purple-500/10 text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded-md">
-                  Interdependent Coupling Active
-                </span>
-              )}
+              <span className="text-xs bg-purple-500/10 text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded-md">
+                Interdependent Coupling Active
+              </span>
             </div>
 
             {/* Total Weight */}
@@ -294,11 +267,9 @@ export default function App() {
                 onChange={(e) => setSweetSpotPos(Number(e.target.value))}
                 className="w-full accent-purple-500 cursor-pointer bg-zinc-800 h-2 rounded-lg"
               />
-              {autoLinkPhysics && (
-                <p className="text-[11px] text-zinc-500 italic">
-                  * Raising sweet spot shifts mass higher, automatically raising MOI and Pickup Feel.
-                </p>
-              )}
+              <p className="text-[11px] text-zinc-500 italic">
+                * Raising sweet spot shifts mass higher, automatically raising MOI and Pickup Feel.
+              </p>
             </div>
 
             {/* Spine & Edges */}
@@ -334,48 +305,22 @@ export default function App() {
               </div>
             </div>
 
-            {/* Derived Dynamics Section (MOI & Pickup) */}
+            {/* Derived Dynamics Section (MOI & Pickup), calculated from the specs above */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-zinc-800/80 bg-zinc-950/40 p-4 rounded-xl border border-zinc-800">
-              {/* Pickup Weight */}
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span className="text-zinc-300 font-medium flex items-center gap-1.5">
-                    Pickup Feel
-                    {autoLinkPhysics && <span className="text-[10px] text-purple-400 font-mono">(Auto)</span>}
-                  </span>
+                  <span className="text-zinc-300 font-medium">Pickup Feel</span>
                   <span className="text-purple-400 font-bold">{pickupWeight} g</span>
                 </div>
-                <input
-                  type="range"
-                  min="1000"
-                  max="1250"
-                  step="5"
-                  disabled={autoLinkPhysics}
-                  value={pickupWeight}
-                  onChange={(e) => setPickupWeight(Number(e.target.value))}
-                  className={`w-full h-2 rounded-lg ${autoLinkPhysics ? 'accent-purple-500/50 opacity-60 cursor-not-allowed bg-zinc-800' : 'accent-purple-500 cursor-pointer bg-zinc-800'}`}
-                />
+                <p className="text-[11px] text-zinc-500">Calculated from mass and sweet spot.</p>
               </div>
 
-              {/* MOI */}
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span className="text-zinc-300 font-medium flex items-center gap-1.5">
-                    Moment of Inertia (MOI)
-                    {autoLinkPhysics && <span className="text-[10px] text-purple-400 font-mono">(Auto)</span>}
-                  </span>
+                  <span className="text-zinc-300 font-medium">Moment of Inertia (MOI)</span>
                   <span className="text-purple-400 font-bold">{moi} kg·cm²</span>
                 </div>
-                <input
-                  type="range"
-                  min="2100"
-                  max="2800"
-                  step="10"
-                  disabled={autoLinkPhysics}
-                  value={moi}
-                  onChange={(e) => setMoi(Number(e.target.value))}
-                  className={`w-full h-2 rounded-lg ${autoLinkPhysics ? 'accent-purple-500/50 opacity-60 cursor-not-allowed bg-zinc-800' : 'accent-purple-500 cursor-pointer bg-zinc-800'}`}
-                />
+                <p className="text-[11px] text-zinc-500">Calculated from mass, sweet spot, spine and edges.</p>
               </div>
             </div>
 
@@ -424,16 +369,10 @@ export default function App() {
                   {(totalWeight - pickupWeight) > 60 ? 'Light & Feathered' : 'Substantial Inertia'}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-zinc-800/60">
+              <div className="flex justify-between items-center py-2">
                 <span className="text-zinc-400">Inertia Class (MOI)</span>
                 <span className="font-semibold text-purple-400">
                   {moi > 2550 ? 'High Power / Slow Turn' : moi < 2300 ? 'Rapid Hand Speed' : 'Balanced Swing'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-zinc-400">Physics Coupling</span>
-                <span className="font-semibold text-purple-300">
-                  {autoLinkPhysics ? 'Real-World Linked' : 'Manual Overrides'}
                 </span>
               </div>
             </div>
